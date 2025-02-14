@@ -84,9 +84,9 @@ class BaseScene extends Phaser.Scene {
     container.setInteractive(new Phaser.Geom.Rectangle(25, 25, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
     
     // Play the 'button' sound effect on mobile button press.
-    container.on('pointerdown', () => { 
+    container.on('pointerdown', () => {
       this.sound.play('button');
-      this.mobileControls[controlName] = true; 
+      this.mobileControls[controlName] = true;
     });
     container.on('pointerup', () => { this.mobileControls[controlName] = false; });
     container.on('pointerout', () => { this.mobileControls[controlName] = false; });
@@ -262,18 +262,18 @@ class MyRoomScene extends BaseScene {
     
     // "Leave Room?" button.
     this.leaveButton = this.add.text(width / 2, height - 60, "Leave Room?", {
-      font: '18px Arial',
-      fill: '#ffffff',
-      backgroundColor: '#000000'
-    })
-    .setOrigin(0.5)
-    .setScrollFactor(0)
-    .setInteractive();
+        font: '18px Arial',
+        fill: '#ffffff',
+        backgroundColor: '#000000'
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setInteractive();
     
     // Use 'door' sound effect for the Leave Room button.
-    this.leaveButton.on('pointerdown', () => { 
+    this.leaveButton.on('pointerdown', () => {
       this.sound.play('door');
-      this.showDoorPrompt(); 
+      this.showDoorPrompt();
     });
     this.leaveButton.visible = false;
     
@@ -383,12 +383,12 @@ class MyGardenScene extends BaseScene {
     
     // "Return to Room" button.
     this.returnButton = this.add.text(width / 2, height - 60, "Return to Room", {
-      font: '18px Arial',
-      fill: '#ffffff',
-      backgroundColor: '#000000'
-    })
-    .setScrollFactor(0)
-    .setInteractive();
+        font: '18px Arial',
+        fill: '#ffffff',
+        backgroundColor: '#000000'
+      })
+      .setScrollFactor(0)
+      .setInteractive();
     
     // Use 'door' sound effect for the Return to Room button.
     this.returnButton.on('pointerdown', () => {
@@ -436,6 +436,9 @@ const config = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
+  scale: {
+    mode: Phaser.Scale.FIT
+  },
   pixelArt: true,
   physics: {
     default: 'arcade',
