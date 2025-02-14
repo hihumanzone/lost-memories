@@ -83,7 +83,6 @@ class BaseScene extends Phaser.Scene {
     
     container.setInteractive(new Phaser.Geom.Rectangle(25, 25, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
     
-    // Play the 'button' sound effect on mobile button press.
     container.on('pointerdown', () => {
       this.sound.play('button');
       this.mobileControls[controlName] = true;
@@ -257,8 +256,7 @@ class MyRoomScene extends BaseScene {
       this.createMobileControls();
     }
     
-    // Pre-create walking sound effect (looped) for movement.
-    this.walkingSound = this.sound.add('walking', { loop: true, volume: 0.3 });
+    this.walkingSound = this.sound.add('walking', { loop: true, volume: 0.6 });
     
     // "Leave Room?" button.
     this.leaveButton = this.add.text(width / 2, height - 60, "Leave Room?", {
@@ -270,7 +268,6 @@ class MyRoomScene extends BaseScene {
       .setScrollFactor(0)
       .setInteractive();
     
-    // Use 'door' sound effect for the Leave Room button.
     this.leaveButton.on('pointerdown', () => {
       this.sound.play('door');
       this.showDoorPrompt();
@@ -326,7 +323,6 @@ class MyRoomScene extends BaseScene {
     this.updatePlayerMovement(this.player);
     this.handlePlayerJump(this.player);
     
-    // Update walking sound based on movement.
     const moving = this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0;
     if (moving && !this.walkingSound.isPlaying) {
       this.walkingSound.play();
@@ -378,8 +374,7 @@ class MyGardenScene extends BaseScene {
       this.createMobileControls();
     }
     
-    // Pre-create walking sound effect for movement.
-    this.walkingSound = this.sound.add('walking', { loop: true, volume: 0.3 });
+    this.walkingSound = this.sound.add('walking', { loop: true, volume: 0.6 });
     
     // "Return to Room" button.
     this.returnButton = this.add.text(width / 2, height - 60, "Return to Room", {
@@ -390,7 +385,6 @@ class MyGardenScene extends BaseScene {
       .setScrollFactor(0)
       .setInteractive();
     
-    // Use 'door' sound effect for the Return to Room button.
     this.returnButton.on('pointerdown', () => {
       this.sound.play('door');
       this.gardenMusic.stop();
@@ -408,7 +402,6 @@ class MyGardenScene extends BaseScene {
     this.updatePlayerMovement(this.player);
     this.handlePlayerJump(this.player);
     
-    // Update walking sound based on movement.
     const moving = this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0;
     if (moving && !this.walkingSound.isPlaying) {
       this.walkingSound.play();
