@@ -148,7 +148,28 @@ class BaseScene extends Phaser.Scene {
     else if (velocityX > 0) player.setFrame(2);
     else if (velocityY < 0) player.setFrame(3);
     else if (velocityY > 0) player.setFrame(0);
+    
+    // Wiggle effect
+    if (velocityX !== 0 || velocityY !== 0) {
+      if (!player.wiggleTween) {
+        player.wiggleTween = this.tweens.add({
+          targets: player,
+          angle: { from: -5, to: 5 },
+          duration: 200,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    } else {
+      if (player.wiggleTween) {
+        player.wiggleTween.stop();
+        player.wiggleTween = null;
+        player.angle = 0;
+      }
+    }
   }
+  
   
   handlePlayerJump(player) {
     if (
