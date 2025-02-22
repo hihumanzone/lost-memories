@@ -9,7 +9,7 @@ class PreloaderScene extends Phaser.Scene {
   preload() {
     const { width, height } = this.cameras.main;
     
-    // Draw loading UI.
+    // Create loading UI.
     const progressBox = this.add.graphics();
     progressBox.fillStyle(0x222222, 0.8);
     progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50);
@@ -20,8 +20,7 @@ class PreloaderScene extends Phaser.Scene {
       y: height / 2 - 50,
       text: 'Loading...',
       style: { font: '20px monospace', fill: '#ffffff' }
-    });
-    loadingText.setOrigin(0.5);
+    }).setOrigin(0.5);
     
     this.load.on('progress', (value) => {
       progressBar.clear();
@@ -42,7 +41,7 @@ class PreloaderScene extends Phaser.Scene {
     this.load.image('myRoom', 'assets/my_room.png');
     this.load.image('garden', 'assets/garden.png');
     
-    // Jack sprite: a 128×128 image split into 4 frames (each 64×64).
+    // Jack sprite: a spritesheet with 4 frames.
     this.load.spritesheet('jack', 'assets/jack.png', { frameWidth: 64, frameHeight: 64 });
     
     // Load audio tracks.
@@ -62,51 +61,51 @@ class PreloaderScene extends Phaser.Scene {
 }
 
 // -------------------------------------
-// BaseScene (Common helpers for mobile buttons, transitions, and player control)
+// BaseScene (Common helpers for controls, movement, and player)
 // -------------------------------------
 class BaseScene extends Phaser.Scene {
-  createMobileButton(centerX, centerY, label, controlName) {
-    const buttonWidth = 50,
-      buttonHeight = 50;
+  createMobileButton(x, y, label, controlName) {
+    const buttonStyle = {
+      font: '16px Arial',
+      fill: '#ffffff',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      fixedWidth: 60,
+      fixedHeight: 60,
+      align: 'center',
+      padding: { top: 15 },
+      stroke: '#ffffff',
+      strokeThickness: 10
+    };
     
-    let container = this.add.container(centerX - buttonWidth / 2, centerY - buttonHeight / 2);
-    container.setScrollFactor(0);
+    const button = this.add.text(x, y, label, buttonStyle)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setInteractive();
     
-    let bg = this.add.rectangle(buttonWidth / 2, buttonHeight / 2, buttonWidth, buttonHeight, 0x000000, 0.5);
-    bg.setStrokeStyle(2, 0xffffff);
-    
-    let text = this.add.text(buttonWidth / 2, buttonHeight / 2, label, { font: '16px Arial', fill: '#ffffff' });
-    text.setOrigin(0.5);
-    
-    container.add([bg, text]);
-    container.setSize(buttonWidth, buttonHeight);
-    
-    container.setInteractive(new Phaser.Geom.Rectangle(25, 25, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-    
-    container.on('pointerdown', () => {
+    button.on('pointerdown', () => {
       this.sound.play('button');
       this.mobileControls[controlName] = true;
     });
-    container.on('pointerup', () => { this.mobileControls[controlName] = false; });
-    container.on('pointerout', () => { this.mobileControls[controlName] = false; });
+    button.on('pointerup', () => { this.mobileControls[controlName] = false; });
+    button.on('pointerout', () => { this.mobileControls[controlName] = false; });
     
-    return container;
+    return button;
   }
   
   createMobileControls() {
     this.mobileControls = { up: false, down: false, left: false, right: false, jump: false };
-    const offset = 50;
+    const offset = 60;
     const baseX = 100,
       baseY = this.sys.game.config.height - 100;
     
-    this.createMobileButton(baseX, baseY - offset, 'Up', 'up');
-    this.createMobileButton(baseX, baseY + offset, 'Down', 'down');
-    this.createMobileButton(baseX - offset, baseY, 'Left', 'left');
-    this.createMobileButton(baseX + offset, baseY, 'Right', 'right');
+    this.createMobileButton(baseX, baseY - offset, '▲', 'up');
+    this.createMobileButton(baseX, baseY + offset, '▼', 'down');
+    this.createMobileButton(baseX - offset, baseY, '◀', 'left');
+    this.createMobileButton(baseX + offset, baseY, '▶', 'right');
     
     const jumpX = this.sys.game.config.width - 80,
       jumpY = this.sys.game.config.height - 100;
-    this.createMobileButton(jumpX, jumpY, 'Jump', 'jump');
+    this.createMobileButton(jumpX, jumpY, '🆙', 'jump');
   }
   
   initPlayerControls() {
@@ -115,48 +114,40 @@ class BaseScene extends Phaser.Scene {
     this.isJumping = false;
   }
   
+  createPlayer(x, y, spriteKey = 'jack') {
+    const player = this.physics.add.sprite(x, y, spriteKey);
+    player.setScale(2);
+    player.setSize(64, 64);
+    player.setCollideWorldBounds(true);
+    return player;
+  }
+  
   updatePlayerMovement(player) {
     const speed = 240;
     let velocityX = 0,
       velocityY = 0;
     
     if (this.cursors) {
-      if (this.cursors.left.isDown) {
-        velocityX = -speed;
-      } else if (this.cursors.right.isDown) {
-        velocityX = speed;
-      }
-      if (this.cursors.up.isDown) {
-        velocityY = -speed;
-      } else if (this.cursors.down.isDown) {
-        velocityY = speed;
-      }
+      if (this.cursors.left.isDown) velocityX = -speed;
+      else if (this.cursors.right.isDown) velocityX = speed;
+      if (this.cursors.up.isDown) velocityY = -speed;
+      else if (this.cursors.down.isDown) velocityY = speed;
     }
     
     if (this.mobileControls) {
-      if (this.mobileControls.left) {
-        velocityX = -speed;
-      } else if (this.mobileControls.right) {
-        velocityX = speed;
-      }
-      if (this.mobileControls.up) {
-        velocityY = -speed;
-      } else if (this.mobileControls.down) {
-        velocityY = speed;
-      }
+      if (this.mobileControls.left) velocityX = -speed;
+      else if (this.mobileControls.right) velocityX = speed;
+      if (this.mobileControls.up) velocityY = -speed;
+      else if (this.mobileControls.down) velocityY = speed;
     }
     
     player.setVelocity(velocityX, velocityY);
     
-    if (velocityX < 0) {
-      player.setFrame(1);
-    } else if (velocityX > 0) {
-      player.setFrame(2);
-    } else if (velocityY < 0) {
-      player.setFrame(3);
-    } else if (velocityY > 0) {
-      player.setFrame(0);
-    }
+    // Adjust frame based on movement direction.
+    if (velocityX < 0) player.setFrame(1);
+    else if (velocityX > 0) player.setFrame(2);
+    else if (velocityY < 0) player.setFrame(3);
+    else if (velocityY > 0) player.setFrame(0);
   }
   
   handlePlayerJump(player) {
@@ -166,9 +157,7 @@ class BaseScene extends Phaser.Scene {
       !this.isJumping
     ) {
       this.isJumping = true;
-      if (this.mobileControls) {
-        this.mobileControls.jump = false;
-      }
+      if (this.mobileControls) this.mobileControls.jump = false;
       
       const originalY = player.y;
       this.tweens.add({
@@ -188,6 +177,14 @@ class BaseScene extends Phaser.Scene {
       });
     }
   }
+  
+  updatePlayerAndSound(player, walkingSound) {
+    this.updatePlayerMovement(player);
+    this.handlePlayerJump(player);
+    const moving = player.body.velocity.x !== 0 || player.body.velocity.y !== 0;
+    if (moving && !walkingSound.isPlaying) walkingSound.play();
+    else if (!moving && walkingSound.isPlaying) walkingSound.stop();
+  }
 }
 
 // -------------------------------------
@@ -201,13 +198,13 @@ class MainMenuScene extends BaseScene {
   create() {
     const { width, height } = this.sys.game.config;
     
-    // Background image.
+    // Background and banner.
     this.add.image(0, 0, 'mainMenu')
       .setOrigin(0, 0)
       .setDisplaySize(width, height);
+    this.add.image(width / 2, 250, 'mainBanner').setOrigin(0.5);
     
-    const banner = this.add.image(width / 2, 250, 'mainBanner').setOrigin(0.5);
-    
+    // Play button.
     const playButton = this.add.image(width / 2, height - 100, 'playButton')
       .setInteractive()
       .setOrigin(0.5);
@@ -246,11 +243,7 @@ class MyRoomScene extends BaseScene {
       .setOrigin(0, 0)
       .setDisplaySize(width, height);
     
-    this.player = this.physics.add.sprite(100, height / 2, 'jack');
-    this.player.setScale(2);
-    this.player.setSize(64, 64);
-    this.player.setCollideWorldBounds(true);
-    
+    this.player = this.createPlayer(100, height / 2);
     this.initPlayerControls();
     if (!this.sys.game.device.os.desktop) {
       this.createMobileControls();
@@ -258,84 +251,44 @@ class MyRoomScene extends BaseScene {
     
     this.walkingSound = this.sound.add('walking', { loop: true, volume: 0.6 });
     
-    // "Leave Room?" button.
-    this.leaveButton = this.add.text(width / 2, height - 60, "Leave Room?", {
-        font: '18px Arial',
-        fill: '#ffffff',
-        backgroundColor: '#000000'
-      })
+    const buttonStyle = {
+      font: '18px Arial',
+      fill: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 },
+      stroke: '#ff0000',
+      strokeThickness: 2
+    };
+    
+    // "Leave Room?" button
+    this.leaveButton = this.add.text(width / 2, height - 60, "Leave Room?", buttonStyle)
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setInteractive();
     
     this.leaveButton.on('pointerdown', () => {
       this.sound.play('door');
-      this.showDoorPrompt();
-    });
-    this.leaveButton.visible = false;
-    
-    this.cameras.main.fadeIn(1000);
-  }
-  
-  showDoorPrompt() {
-    const { width, height } = this.sys.game.config;
-    const overlay = this.add.rectangle(width / 2, height / 2, 300, 150, 0x000000, 0.7).setOrigin(0.5);
-    const promptText = this.add.text(width / 2, height / 2 - 30, 'Leave Room?', {
-      font: '20px Arial',
-      fill: '#ffffff'
-    }).setOrigin(0.5);
-    
-    const yesButton = this.add.text(width / 2 - 50, height / 2 + 20, 'Yes', {
-      font: '18px Arial',
-      fill: '#00ff00'
-    }).setOrigin(0.5).setInteractive();
-    
-    const noButton = this.add.text(width / 2 + 50, height / 2 + 20, 'No', {
-      font: '18px Arial',
-      fill: '#ff0000'
-    }).setOrigin(0.5).setInteractive();
-    
-    yesButton.on('pointerdown', () => {
-      this.sound.play('button');
-      overlay.destroy();
-      promptText.destroy();
-      yesButton.destroy();
-      noButton.destroy();
       this.roomMusic.stop();
       this.cameras.main.fadeOut(1000);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.start('MyGardenScene', { playerX: 500, playerY: 500 });
       });
     });
+    this.leaveButton.visible = false;
     
-    noButton.on('pointerdown', () => {
-      this.sound.play('button');
-      overlay.destroy();
-      promptText.destroy();
-      yesButton.destroy();
-      noButton.destroy();
-    });
+    this.cameras.main.fadeIn(1000);
   }
   
   update() {
     const { width, height } = this.sys.game.config;
+    this.updatePlayerAndSound(this.player, this.walkingSound);
     
-    this.updatePlayerMovement(this.player);
-    this.handlePlayerJump(this.player);
-    
-    const moving = this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0;
-    if (moving && !this.walkingSound.isPlaying) {
-      this.walkingSound.play();
-    } else if (!moving && this.walkingSound.isPlaying) {
-      this.walkingSound.stop();
-    }
-    
-    // Show "Leave Room?" button when player is near the bottom–middle.
-    if (this.player.x > width / 2 - 50 && this.player.x < width / 2 + 50 && this.player.y > height - 100) {
-      this.leaveButton.visible = true;
-    } else {
-      this.leaveButton.visible = false;
-    }
+    // Show the button when the player is near the bottom–middle.
+    this.leaveButton.visible = (
+      this.player.x > width / 2 - 50 &&
+      this.player.x < width / 2 + 50 &&
+      this.player.y > height - 100
+    );
   }
 }
 
@@ -362,26 +315,27 @@ class MyGardenScene extends BaseScene {
     this.physics.world.setBounds(0, 0, this.gardenImage.width, this.gardenImage.height);
     this.cameras.main.setBounds(0, 0, this.gardenImage.width, this.gardenImage.height);
     
-    this.player = this.physics.add.sprite(this.startX, this.startY, 'jack');
-    this.player.setScale(2);
-    this.player.setSize(64, 64);
-    this.player.setCollideWorldBounds(true);
-    
+    this.player = this.createPlayer(this.startX, this.startY);
     this.cameras.main.startFollow(this.player);
     
     this.initPlayerControls();
     if (!this.sys.game.device.os.desktop) {
       this.createMobileControls();
     }
-    
     this.walkingSound = this.sound.add('walking', { loop: true, volume: 0.6 });
     
-    // "Return to Room" button.
-    this.returnButton = this.add.text(width / 2, height - 60, "Return to Room", {
-        font: '18px Arial',
-        fill: '#ffffff',
-        backgroundColor: '#000000'
-      })
+    const buttonStyle = {
+      font: '18px Arial',
+      fill: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 },
+      stroke: '#ff0000',
+      strokeThickness: 2
+    };
+    
+    // "Enter the Room" button
+    this.returnButton = this.add.text(width / 2, height - 60, "Enter the Room", buttonStyle)
+      .setOrigin(0.5)
       .setScrollFactor(0)
       .setInteractive();
     
@@ -399,26 +353,17 @@ class MyGardenScene extends BaseScene {
   }
   
   update() {
-    this.updatePlayerMovement(this.player);
-    this.handlePlayerJump(this.player);
-    
-    const moving = this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0;
-    if (moving && !this.walkingSound.isPlaying) {
-      this.walkingSound.play();
-    } else if (!moving && this.walkingSound.isPlaying) {
-      this.walkingSound.stop();
-    }
+    this.updatePlayerAndSound(this.player, this.walkingSound);
     
     const margin = 50;
     const centerX = this.gardenImage.width / 2;
     const centerY = this.gardenImage.height / 2;
     
-    // Show "Return to Room" button when player is near the center.
-    if (Math.abs(this.player.x - centerX) < margin && Math.abs(this.player.y - centerY) < margin) {
-      this.returnButton.visible = true;
-    } else {
-      this.returnButton.visible = false;
-    }
+    // Show the button when the player is near the center.
+    this.returnButton.visible = (
+      Math.abs(this.player.x - centerX) < margin &&
+      Math.abs(this.player.y - centerY) < margin
+    );
   }
 }
 
@@ -429,9 +374,7 @@ const config = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
-  scale: {
-    mode: Phaser.Scale.FIT
-  },
+  scale: { mode: Phaser.Scale.FIT },
   pixelArt: true,
   physics: {
     default: 'arcade',
