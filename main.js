@@ -82,12 +82,28 @@ class BaseScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setInteractive();
     
-    button.on('pointerdown', () => {
+    // Assign a unique pointer ID to track this specific touch
+    button.touchId = null;
+    
+    button.on('pointerdown', (pointer) => {
       this.sound.play('button');
+      button.touchId = pointer.id; // Store the pointer ID
       this.mobileControls[controlName] = true;
     });
-    button.on('pointerup', () => { this.mobileControls[controlName] = false; });
-    button.on('pointerout', () => { this.mobileControls[controlName] = false; });
+    
+    button.on('pointerup', (pointer) => {
+      if (button.touchId === pointer.id) { // Only respond if it's the same pointer
+        this.mobileControls[controlName] = false;
+        button.touchId = null;
+      }
+    });
+    
+    button.on('pointerout', (pointer) => {
+      if (button.touchId === pointer.id) { // Only respond if it's the same pointer
+        this.mobileControls[controlName] = false;
+        button.touchId = null;
+      }
+    });
     
     return button;
   }
