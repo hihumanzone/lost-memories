@@ -40,6 +40,7 @@ class PreloaderScene extends Phaser.Scene {
     this.load.image('playButton', 'assets/play_button.png');
     this.load.image('myRoom', 'assets/my_room.png');
     this.load.image('garden', 'assets/garden.png');
+    this.load.json('gardenCollision', 'assets/garden.json');
     
     // Jack sprite: a spritesheet with 4 frames.
     this.load.spritesheet('jack', 'assets/jack.png', { frameWidth: 64, frameHeight: 64 });
@@ -335,6 +336,7 @@ class MyGardenScene extends BaseScene {
     this.gardenImage = this.add.image(0, 0, 'garden').setOrigin(0, 0);
     this.physics.world.setBounds(0, 0, this.gardenImage.width, this.gardenImage.height);
     this.cameras.main.setBounds(0, 0, this.gardenImage.width, this.gardenImage.height);
+    this.collisionLines = this.loadGardenColliders();
     
     this.player = this.createPlayer(this.startX, this.startY);
     this.cameras.main.startFollow(this.player);
@@ -374,7 +376,14 @@ class MyGardenScene extends BaseScene {
   }
   
   update() {
+    const previousX = this.player.x;
+    const previousY = this.player.y;
+    
     this.updatePlayerAndSound(this.player, this.walkingSound);
+    if (this.isCollidingWithWalls(this.player)) {
+      this.player.setPosition(previousX, previousY);
+      this.player.body.setVelocity(0);
+    }
     
     const margin = 50;
     const centerX = this.gardenImage.width / 2;
@@ -384,6 +393,41 @@ class MyGardenScene extends BaseScene {
     this.returnButton.visible = (
       Math.abs(this.player.x - centerX) < margin &&
       Math.abs(this.player.y - centerY) < margin
+    );
+  }
+  
+  loadGardenColliders() {
+    const data = this.cache.json.get('gardenCollision');
+    if (!data || !data.lines) return [];
+    
+    const scaleX = this.gardenImage.width / (data.imageResolution?.width || this.gardenImage.width);
+    const scaleY = this.gardenImage.height / (data.imageResolution?.height || this.gardenImage.height);
+    
+    return data.lines.map((line) => ({
+      start: { x: line.start.x * scaleX, y: line.start.y * scaleY },
+      end: { x: line.end.x * scaleX, y: line.end.y * scaleY }
+    }));
+  }
+  
+  pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    if (dx === 0 && dy === 0) {
+      return Math.hypot(px - x1, py - y1);
+    }
+    const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+    const nearestX = x1 + t * dx;
+    const nearestY = y1 + t * dy;
+    return Math.hypot(px - nearestX, py - nearestY);
+  }
+  
+  isCollidingWithWalls(player) {
+    if (!this.collisionLines || !player.body) return false;
+    const radius = Math.max(player.body.width, player.body.height) / 2;
+    const px = player.x;
+    const py = player.y;
+    return this.collisionLines.some((line) =>
+      this.pointToSegmentDistance(px, py, line.start.x, line.start.y, line.end.x, line.end.y) <= radius
     );
   }
 }
