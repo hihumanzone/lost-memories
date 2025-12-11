@@ -400,8 +400,10 @@ class MyGardenScene extends BaseScene {
     const data = this.cache.json.get('gardenCollision');
     if (!data || !data.lines) return [];
     
-    const scaleX = this.gardenImage.width / (data.imageResolution?.width || this.gardenImage.width);
-    const scaleY = this.gardenImage.height / (data.imageResolution?.height || this.gardenImage.height);
+    const resolutionWidth = data.imageResolution?.width || this.gardenImage.width || 1;
+    const resolutionHeight = data.imageResolution?.height || this.gardenImage.height || 1;
+    const scaleX = this.gardenImage.width / resolutionWidth;
+    const scaleY = this.gardenImage.height / resolutionHeight;
     
     return data.lines.map((line) => ({
       start: { x: line.start.x * scaleX, y: line.start.y * scaleY },
