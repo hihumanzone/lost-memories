@@ -53,6 +53,9 @@ class PreloaderScene extends Phaser.Scene {
     this.load.audio('button', ['assets/sfx/button.mp3']);
     this.load.audio('door', ['assets/sfx/door.mp3']);
     this.load.audio('walking', ['assets/sfx/walking.mp3']);
+    
+    // Load garden collision data.
+    this.load.json('gardenData', 'assets/garden.json');
   }
   
   create() {
@@ -339,6 +342,9 @@ class MyGardenScene extends BaseScene {
     this.player = this.createPlayer(this.startX, this.startY);
     this.cameras.main.startFollow(this.player);
     
+    // Build collision walls from garden.json data.
+    this.createWallsFromData();
+    
     this.initPlayerControls();
     if (!this.sys.game.device.os.desktop) {
       this.createMobileControls();
@@ -371,6 +377,62 @@ class MyGardenScene extends BaseScene {
     this.returnButton.visible = false;
     
     this.cameras.main.fadeIn(1000);
+  }
+  
+  /**
+   * Reads the garden.json collision data from the cache,
+   * scales each line from the JSON image-resolution space
+   * into the actual displayed image space, then places
+   * small overlapping static-body zones along every line
+   * so the player cannot walk through them.
+   */
+  createWallsFromData() {
+    const gardenData = this.cache.json.get('gardenData');
+    if (!gardenData || !gardenData.lines || gardenData.lines.length === 0) {
+      return;
+    }
+    
+    // Scale factor: JSON coordinates are in imageResolution space;
+    // the garden image may be a different size once loaded.
+    const imgRes = gardenData.imageResolution;
+    const scaleX = this.gardenImage.width  / imgRes.width;
+    const scaleY = this.gardenImage.height / imgRes.height;
+    
+    // Each wall segment is a small square static body.
+    // We place them at half-size intervals so they overlap
+    // and form a continuous, gap-free barrier.
+    const segSize = 16;
+    const step    = segSize * 0.5;
+    
+    this.walls = this.physics.add.staticGroup();
+    
+    for (const line of gardenData.lines) {
+      const sx = line.start.x * scaleX;
+      const sy = line.start.y * scaleY;
+      const ex = line.end.x   * scaleX;
+      const ey = line.end.y   * scaleY;
+      
+      const dx  = ex - sx;
+      const dy  = ey - sy;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const count = Math.max(1, Math.ceil(len / step));
+      
+      for (let i = 0; i <= count; i++) {
+        const t  = count > 0 ? i / count : 0;
+        const px = sx + dx * t;
+        const py = sy + dy * t;
+        
+        // Zones are invisible game objects – perfect for walls.
+        const zone = this.add.zone(px, py, segSize, segSize);
+        this.walls.add(zone);
+      }
+    }
+    
+    // Sync every body's position / size with its game object.
+    this.walls.refresh();
+    
+    // Prevent the player from walking through the walls.
+    this.physics.add.collider(this.player, this.walls);
   }
   
   update() {
